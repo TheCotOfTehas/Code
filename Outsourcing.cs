@@ -1,6 +1,5 @@
 ﻿
 using System;
-using System.Collections.Generic;
 using System.Dynamic;
 
 namespace Outsourcing
@@ -8,15 +7,11 @@ namespace Outsourcing
     [Route("/apps/cars-api/v1/cars")]
     public class Program : Controller
     {
-        public RepositoryCar repositoryCar;
+        private CarsRepository repository;
 
-        //POST создает новый ресурс по указанному URI.
-        //В теле сообщения запроса содержатся сведения о новом ресурсе.
-        //Обратите внимание, что POST также может использоваться для запуска операций,
-        //которые фактически не создают ресурсы.
         [Route("Create/{id}")]
-        [HttpPost]
-        public Car Create(ExtendedRequestMessage requestWhichCreate)
+        [HttpPatch]
+        public Car Create(MutableRequestPost requestWhichCreate)
         {
             if (requestWhichCreate.Weight > 1000.0 || requestWhichCreate.Weight < 0)
             {
@@ -25,92 +20,65 @@ namespace Outsourcing
 
             var car = new Car
             {
-                Id = requestWhichCreate.Id,
+                Id = "1",
                 Mark = requestWhichCreate.Mark,
                 Model = requestWhichCreate.Model,
                 Name = requestWhichCreate.Name,
                 Weight = requestWhichCreate.Weight
             };
-            repositoryCar.Save(car);
+            repository.SaveCar(car);
             return car;
         }
-        //PATCH выполняет частичное обновление ресурса.
-        //В теле запроса указывается набор изменений, применяемых к ресурсу.
+
         [Route("UpdateAllCar/{id}")]
-        [HttpPatch]
-        public Car Update(string id, ExtendedRequestMessage megaRequest)
+        [HttpPost]
+        public Car Update(string id, SomeStrangeRequest megaRequest)
         {
             if (megaRequest.Weight > 1000.0 || megaRequest.Weight < 0)
             {
                 throw new Exception("Wrong format of weight parameter");
             }
 
-            var car = repositoryCar.Get(id);
+            var car = repository.GetCar(id);
             if (car == null) throw new Exception("Car was not found");
 
-            var updatedCar = repositoryCar.Update(car.Id, megaRequest);
+            var updatedCar = repository.UpdateCar(car.Id, megaRequest.Name, megaRequest.Weight);
             return updatedCar;
         }
-        //GET извлекает представление ресурса по указанному URI.
-        //Тело ответного сообщения содержит подробную информацию о запрошенном ресурсе.
+
         [Route("GetCarBy/{id}/inCars")]
         [HttpGet]
         public Car Get(string id)
         {
-            var CaaaarModel = repositoryCar.Get(id);
+            var CaaaarModel = repository.GetCar(id);
             if (CaaaarModel == null) throw new Exception("Car was not found");
 
             return CaaaarModel;
         }
 
-        //DELETE удаляет ресурс по указанному URI.
         [Route("DeleteCarsById/{id}")]
         [HttpDelete]
-        public Car Delete(string id)
+        public Car Delete(string iddddd)
         {
-            var car = repositoryCar.Get(id);
+            var car = repository.GetCar(iddddd);
             if (car == null) throw new Exception("Car was not found");
+
             return car;
         }
     }
-    public class RepositoryCar: Repository
+
+    public interface CarsRepository
     {
-        public RepositoryCar()
-        {
-            repository = new Dictionary<string, Car>();
-        }
-        Dictionary<string, Car> repository { get; }
-        public Car Save(Car newCar)
-        {
-            if(repository.ContainsKey(newCar.Id)) throw new Exception("A car with this ID is already in the repository");
-            repository.Add(newCar.Id, newCar);
-            return newCar;
-        }
-        public Car Update(string id, ChangeWeightName zapros)
-        {
-            if(!repository.ContainsKey(id))
-                throw new Exception("The car with this ID is not in the repository");
-            repository[id].Name = zapros.Name;
-            repository[id].Weight = zapros.Weight;
-            return repository[id];
-        }
+        Car SaveCar(Car model);
 
-        public Car Get(string id)
-        {
-            if(repository.ContainsKey(id))
-                throw new Exception("The car with this ID is not in the repository");
-            return repository[id];
-        }
+        Car UpdateCar(string id, string Name, double weight);
 
-        public void Delete(string id)
-        {
-            if (!repository.ContainsKey(id)) 
-                throw new Exception("The car with this ID is not in the repository");
-            repository.Remove(id);
-        }
+        Car GetCar(string id);
+
+        void DeleteCar(string id);
     }
 
-    public class Car:Product
+    public class Car
     {
         public string Id { get; set; }
         public string Name { get; set; }
@@ -119,32 +87,17 @@ namespace Outsourcing
         public string Model { get; set; }
     }
 
-    public class ExtendedRequestMessage: ChangeWeightName
+    public class MutableRequestPost
     {
+        public string Name { get; set; }
+        public double Weight { get; set; }
         public string Mark { get; set; }
         public string Model { get; set; }
     }
 
-    public class ChangeWeightName
+    public class SomeStrangeRequest
     {
-        public string Id { get; set; }
         public string Name { get; set; }
         public double Weight { get; set; }
-    }
-    public interface Product
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public double Weight { get; set; }
-    }
-    public interface Repository
-    {
-        Car Save(Car model);
-
-        Car Update(string id, ChangeWeightName zapros);
-
-        Car Get(string id);
-
-        void Delete(string id);
     }
 }
